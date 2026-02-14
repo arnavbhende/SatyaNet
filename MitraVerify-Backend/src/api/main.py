@@ -20,9 +20,13 @@ sys.path.insert(0, src_dir)
 from config.settings import settings
 from config.logging_config import setup_logging
 from core.fusion_engine import fusion_engine
+from core.cache_manager import cache_manager
+from utils.performance_monitor import performance_monitor
 from api.endpoints.verification import router as verification_router
 from api.endpoints.health import router as health_router
-
+from api.endpoints.multi_source import router as multi_source_router
+from api.endpoints.performance import router as performance_router
+from middleware.rate_limiter import RateLimiterMiddleware
 
 # Setup logging
 logger = setup_logging()
@@ -45,6 +49,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add rate limiting middleware
+app.add_middleware(RateLimiterMiddleware, calls=100, period=60)
+
 # Static files and templates are not needed for backend-only API
 # app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 # templates = Jinja2Templates(directory=str(templates_path)) if templates_path.exists() else None
@@ -52,7 +59,8 @@ app.add_middleware(
 # Include routers
 app.include_router(verification_router, prefix="/api/v1", tags=["verification"])
 app.include_router(health_router, prefix="/api/v1", tags=["health"])
-
+app.include_router(multi_source_router, prefix="/api/v1", tags=["multi-source"])
+app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
 
 @app.get("/")
 async def root():
