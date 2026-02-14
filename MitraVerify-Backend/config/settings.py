@@ -2,7 +2,7 @@
 Configuration settings for MitraVerify
 """
 import os
-from typing import Optional
+from typing import List, Optional
 from pydantic_settings import BaseSettings
 
 
@@ -30,6 +30,22 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "dev-secret-key-change-in-production"
     debug: bool = True
+
+    # CORS Configuration
+    allowed_origins: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://your-production-domain.com"
+    ]
+    
+    # File Upload Configuration
+    max_file_size: int = 10 * 1024 * 1024  # 10MB
+    allowed_file_types: List[str] = [
+        "image/jpeg",
+        "image/png", 
+        "image/webp",
+        "text/plain"
+    ]
 
     class Config:
         env_file = ".env"

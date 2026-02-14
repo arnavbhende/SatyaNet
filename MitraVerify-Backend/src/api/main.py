@@ -39,10 +39,10 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=settings.allowed_origins,  # Secure CORS configuration
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # Restrict to needed methods only
+    allow_headers=["Content-Type", "Authorization"],  # Restrict headers
 )
 
 # Static files and templates are not needed for backend-only API
@@ -86,11 +86,17 @@ async def analyze_content(
 
         # Handle file upload
         if file:
-            # Validate file type
-            if not file.content_type.startswith(('image/', 'text/')):
+            # Enhanced file validation
+            if file.size and file.size > settings.max_file_size:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File size exceeds maximum allowed size of {settings.max_file_size / (1024*1024):.1f}MB"
+                )
+            
+            if file.content_type not in settings.allowed_file_types:
                 raise HTTPException(
                     status_code=400,
-                    detail="Only image and text files are supported"
+                    detail=f"Unsupported file type. Allowed types: {', '.join(settings.allowed_file_types)}"
                 )
 
             # Save uploaded file temporarily
