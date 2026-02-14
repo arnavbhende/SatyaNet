@@ -1,4 +1,4 @@
-# MitraVerify 2.0 🔍
+# SatyaNet 🔍
 
 **AI-Powered Misinformation Detection Platform for India**
 
@@ -9,7 +9,7 @@
 
 ## 🎯 Overview
 
-MitraVerify is a comprehensive AI-powered platform designed to combat misinformation in real-time, specifically tailored for the Indian market. It provides instant verification of text content, images, and multimedia across multiple languages (English/Hindi) with transparent, explainable results.
+SatyaNet is a comprehensive AI-powered platform designed to combat misinformation in real-time, specifically tailored for the Indian market. It provides instant verification of text content, images, and multimedia across multiple languages (English/Hindi) with transparent, explainable results.
 
 ### Key Features
 
@@ -58,7 +58,7 @@ cd Mitra_Verify-2.0
 ### 2. Backend Setup
 
 ```bash
-cd MitraVerify-Backend
+cd SatyaNet-Backend
 
 # Create virtual environment
 python -m venv venv
@@ -81,7 +81,7 @@ python -m uvicorn src.api.main:app --reload
 ### 3. Frontend Setup
 
 ```bash
-cd mitraverify-frontend
+cd SatyaNet-frontend
 
 # Install dependencies
 npm install
@@ -128,7 +128,7 @@ const result = await mitraAPI.verifyContent(
 ### Backend Tests
 
 ```bash
-cd MitraVerify-Backend
+cd SatyaNet-Backend
 python -m pytest tests/
 python test_dynamic_analysis.py  # Test misinformation detection
 ```
@@ -136,15 +136,15 @@ python test_dynamic_analysis.py  # Test misinformation detection
 ### Frontend Tests
 
 ```bash
-cd mitraverify-frontend
+cd SatyaNet-frontend
 npm test
 ```
 
 ## 📁 Project Structure
 
 ```
-MitraVerify/
-├── MitraVerify-Backend/
+SatyaNet/
+├── SatyaNet-Backend/
 │   ├── src/
 │   │   ├── api/           # FastAPI endpoints
 │   │   ├── core/          # AI analysis engines
@@ -156,7 +156,7 @@ MitraVerify/
 │   ├── config/            # Configuration
 │   ├── scripts/           # Setup scripts
 │   └── tests/             # Backend tests
-├── mitraverify-frontend/
+├── SatyaNet-frontend/
 │   ├── src/
 │   │   ├── app/           # Next.js app router
 │   │   ├── components/    # React components
@@ -212,7 +212,7 @@ PIB_API_KEY=your_key_here
 **Frontend (.env.local):**
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_APP_NAME=MitraVerify
+NEXT_PUBLIC_APP_NAME=SatyaNet
 ```
 
 ## 📈 Performance Metrics
@@ -269,7 +269,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/ChirayuMarathe/Mitra_Verify-2.0/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ChirayuMarathe/Mitra_Verify-2.0/discussions)
-- **Email**: support@mitraverify.com
+- **Email**: support@SatyNet.com
 
 ---
 
