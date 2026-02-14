@@ -1,0 +1,42 @@
+services:
+  # Frontend Static Site - EXPLICIT CONFIGURATION
+  - type: web
+    name: mitraverify-frontend
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: cd mitraverify-frontend && rm -f bun.lock* && npm install --legacy-peer-deps && npm run build
+    staticPublishPath: mitraverify-frontend/out
+    pullRequestPreviewsEnabled: true
+    buildFilter:
+      paths:
+        - mitraverify-frontend/**
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20.17.0"
+      - key: NPM_CONFIG_LEGACY_PEER_DEPS
+        value: "true"
+      - key: BUN_DISABLE
+        value: "true"
+      - key: PACKAGE_MANAGER
+        value: "npm"
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-XSS-Protection
+        value: "1; mode=block"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*.js
+        name: Cache-Control
+        value: "public, max-age=31536000, immutable"
+      - path: /*.css
+        name: Cache-Control
+        value: "public, max-age=31536000, immutable"
