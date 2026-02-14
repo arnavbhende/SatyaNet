@@ -6,7 +6,6 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
-import tempfile
 import os
 import sys
 from pathlib import Path
@@ -20,10 +19,9 @@ sys.path.insert(0, src_dir)
 from config.settings import settings
 from config.logging_config import setup_logging
 from core.fusion_engine import fusion_engine
-from core.cache_manager import cache_manager
-from utils.performance_monitor import performance_monitor
 from api.endpoints.verification import router as verification_router
 from api.endpoints.health import router as health_router
+from utils.file_utils import save_upload_file_temporarily, cleanup_temp_file
 from api.endpoints.multi_source import router as multi_source_router
 from api.endpoints.performance import router as performance_router
 from middleware.rate_limiter import RateLimiterMiddleware
@@ -92,33 +90,17 @@ async def analyze_content(
 
         image_path = None
 
-        # Handle file upload
+        # Handle file upload with async operations
         if file:
-            # Enhanced file validation
-            if file.size and file.size > settings.max_file_size:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File size exceeds maximum allowed size of {settings.max_file_size / (1024*1024):.1f}MB"
-                )
-            
-            if file.content_type not in settings.allowed_file_types:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Unsupported file type. Allowed types: {', '.join(settings.allowed_file_types)}"
-                )
-
-            # Save uploaded file temporarily
-            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
-                content = await file.read()
-                temp_file.write(content)
-                image_path = temp_file.name
+            # Use async file handling utilities
+            image_path = await save_upload_file_temporarily(file)
 
         # Analyze content
         result = fusion_engine.analyze_content(text=text, image_path=image_path)
 
         # Clean up temporary file
-        if image_path and os.path.exists(image_path):
-            os.unlink(image_path)
+        if image_path:
+            cleanup_temp_file(image_path)
 
         return result
 

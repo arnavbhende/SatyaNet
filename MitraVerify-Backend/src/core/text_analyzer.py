@@ -8,6 +8,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
+import gc
+from functools import lru_cache
 
 from config.settings import settings
 from utils.language_detection import detect_language
@@ -32,27 +34,48 @@ class TextAnalyzer:
         self._load_model()
 
     def _load_model(self):
-        """Load the pre-trained MURIL model"""
+        """Load the pre-trained MURIL model with optimizations"""
         try:
             logger.info(f"Loading text model: {self.model_name}")
 
+            # Enable optimizations
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.deterministic = False
+            
+            # Load tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.model_name,
                 cache_dir=settings.model_cache_dir
             )
 
+            # Load model with optimizations
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 self.model_name,
                 cache_dir=settings.model_cache_dir,
                 num_labels=2,
                 id2label=self.id2label,
-                label2id=self.label2id
+                label2id=self.label2id,
+                torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
+                low_cpu_mem_usage=True
             )
 
+            # Move to device and optimize
             self.model.to(self.device)
             self.model.eval()
+            
+            # Enable model compilation for better performance (PyTorch 2.0+)
+            if hasattr(torch, 'compile') and self.device.type == "cuda":
+                try:
+                    self.model = torch.compile(self.model, mode="reduce-overhead")
+                    logger.info("Model compilation enabled for better performance")
+                except Exception as e:
+                    logger.warning(f"Model compilation failed: {e}")
 
-            logger.info("Text model loaded successfully")
+            # Enable gradient checkpointing for memory efficiency
+            if hasattr(self.model, 'gradient_checkpointing_enable'):
+                self.model.gradient_checkpointing_enable()
+
+            logger.info("Text model loaded successfully with optimizations")
 
         except Exception as e:
             logger.error(f"Failed to load text model: {e}")
@@ -87,23 +110,27 @@ class TextAnalyzer:
             # Preprocess text
             processed_text = self._preprocess_text(text)
 
-            # Tokenize
+            # Tokenize with optimized settings
             inputs = self.tokenizer(
                 processed_text,
                 return_tensors="pt",
                 truncation=True,
                 padding=True,
-                max_length=512
+                max_length=256  # Reduced from 512 for efficiency
             )
 
             # Move to device
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-            # Get prediction
+            # Get prediction with memory management
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 logits = outputs.logits
                 probabilities = torch.softmax(logits, dim=1).cpu().numpy()[0]
+                
+                # Clear GPU cache to prevent memory buildup
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
 
             # Get raw model prediction
             predicted_class = int(np.argmax(probabilities))
@@ -145,6 +172,105 @@ class TextAnalyzer:
                 "error": str(e),
                 "language": detect_language(text) if text else "unknown"
             }
+
+    @lru_cache(maxsize=128)
+    def _cached_language_detection(self, text: str) -> str:
+        """Cached language detection for efficiency"""
+        return detect_language(text)
+
+    def batch_analyze(self, texts: List[str], batch_size: int = 4) -> List[Dict[str, Any]]:
+        """
+        Analyze multiple texts in batches for better efficiency
+        
+        Args:
+            texts: List of texts to analyze
+            batch_size: Number of texts to process at once
+            
+        Returns:
+            List of analysis results
+        """
+        results = []
+        
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            
+            try:
+                # Tokenize batch
+                inputs = self.tokenizer(
+                    batch,
+                    return_tensors="pt",
+                    truncation=True,
+                    padding=True,
+                    max_length=256
+                )
+                
+                # Move to device
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                
+                # Get batch predictions
+                with torch.no_grad():
+                    outputs = self.model(**inputs)
+                    logits = outputs.logits
+                    probabilities = torch.softmax(logits, dim=1).cpu().numpy()
+                
+                # Process each result in the batch
+                for j, text in enumerate(batch):
+                    predicted_class = int(np.argmax(probabilities[j]))
+                    raw_confidence = float(probabilities[j][predicted_class])
+                    detected_language = self._cached_language_detection(text)
+                    
+                    enhanced_result = self._enhance_prediction(
+                        text, predicted_class, raw_confidence, probabilities[j], detected_language
+                    )
+                    
+                    result = {
+                        "prediction": enhanced_result["prediction"],
+                        "confidence": enhanced_result["confidence"],
+                        "probabilities": enhanced_result["probabilities"],
+                        "language": detected_language,
+                        "explanation": self._generate_explanation(
+                            text, enhanced_result["prediction"], enhanced_result["confidence"]
+                        ),
+                        "model_used": self.model_name
+                    }
+                    
+                    results.append(result)
+                
+                # Clear GPU cache after each batch
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
+                    
+            except Exception as e:
+                logger.error(f"Error in batch analysis: {e}")
+                # Add error results for this batch
+                for text in batch:
+                    results.append({
+                        "prediction": "error",
+                        "confidence": 0.0,
+                        "error": str(e),
+                        "language": self._cached_language_detection(text) if text else "unknown"
+                    })
+        
+        return results
+
+    def optimize_memory(self):
+        """Optimize memory usage and cleanup"""
+        try:
+            # Clear any cached data
+            if hasattr(self, '_cached_language_detection'):
+                self._cached_language_detection.cache_clear()
+            
+            # Force garbage collection
+            gc.collect()
+            
+            # Clear GPU cache if using CUDA
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                
+            logger.info("Memory optimization completed")
+        except Exception as e:
+            logger.warning(f"Memory optimization failed: {e}")
 
     def _enhance_prediction(self, text: str, predicted_class: int, raw_confidence: float, probabilities: np.ndarray, detected_language: str) -> Dict[str, Any]:
         """

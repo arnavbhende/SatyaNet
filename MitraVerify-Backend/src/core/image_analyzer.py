@@ -9,6 +9,10 @@ from pathlib import Path
 import imagehash
 from PIL import Image
 import numpy as np
+import gc
+from functools import lru_cache
+import concurrent.futures
+from threading import Lock
 
 from config.settings import settings
 
@@ -17,19 +21,21 @@ logger = logging.getLogger(__name__)
 
 
 class ImageAnalyzer:
-    """Image analyzer for basic forensics and reuse detection"""
+    """Image analyzer for basic forensics and reuse detection with optimizations"""
 
     def __init__(self):
-        """Initialize the image analyzer"""
+        """Initialize the image analyzer with optimizations"""
         self.image_db_path = Path(settings.image_db_path)
         self.image_db_path.mkdir(exist_ok=True)
         self.known_hashes = self._load_known_hashes()
+        self._hash_cache = {}
+        self._cache_lock = Lock()
+        # Thread pool for parallel processing
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
-    def _load_known_hashes(self) -> Dict[str, str]:
-        """Load known image hashes from database"""
-        hash_file = self.image_db_path / "image_hashes.txt"
-        if not hash_file.exists():
-            return {}
+    @lru_cache(maxsize=256)
+    def _cached_hash_calculation(self, image_path: str) -> str:
+        """Cache hash calculations for efficiency"""
 
         hashes = {}
         try:
