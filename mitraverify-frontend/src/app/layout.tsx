@@ -5,7 +5,7 @@ import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "MitraVerify - AI-Powered Fact Checker",
+  title: "SatyaNet — AI Early Warning System",
   description:
     "Multimodal AI system for detecting misinformation in text and images",
   icons: {
