@@ -19,11 +19,14 @@ sys.path.insert(0, src_dir)
 from config.settings import settings
 from config.logging_config import setup_logging
 from core.fusion_engine import fusion_engine
+from core.exceptions import MitraVerifyException, ValidationError, AnalysisError
 from api.endpoints.verification import router as verification_router
 from api.endpoints.health import router as health_router
 from utils.file_utils import save_upload_file_temporarily, cleanup_temp_file
 from api.endpoints.multi_source import router as multi_source_router
 from api.endpoints.performance import router as performance_router
+from api.middleware.logging import RequestLoggingMiddleware, PerformanceLoggingMiddleware
+from api.middleware.exception_handlers import setup_exception_handlers
 from middleware.rate_limiter import RateLimiterMiddleware
 
 # Setup logging
@@ -37,6 +40,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Setup exception handlers first
+setup_exception_handlers(app)
+
+# Add logging middleware
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(PerformanceLoggingMiddleware, slow_request_threshold_ms=1000.0)
 
 # Add CORS middleware
 app.add_middleware(
@@ -81,34 +91,48 @@ async def analyze_content(
     Supports both text and image analysis
     """
     try:
-        # Validate input
+        # Validate input using custom exception
         if not text and not file:
-            raise HTTPException(
-                status_code=400,
-                detail="Either text or file must be provided"
+            raise ValidationError(
+                message="Either text or file must be provided",
+                field="content",
+                details={"provided_text": bool(text), "provided_file": bool(file)}
             )
 
         image_path = None
 
-        # Handle file upload with async operations
-        if file:
-            # Use async file handling utilities
-            image_path = await save_upload_file_temporarily(file)
+        try:
+            # Handle file upload with async operations
+            if file:
+                image_path = await save_upload_file_temporarily(file)
 
-        # Analyze content
-        result = fusion_engine.analyze_content(text=text, image_path=image_path)
+            # Analyze content with error handling
+            try:
+                result = fusion_engine.analyze_content(text=text, image_path=image_path)
+            except Exception as e:
+                raise AnalysisError(
+                    message=f"Content analysis failed: {str(e)}",
+                    content_type="mixed" if text and image_path else ("text" if text else "image"),
+                    details={"text_length": len(text) if text else 0, "has_image": bool(image_path)}
+                )
 
-        # Clean up temporary file
-        if image_path:
-            cleanup_temp_file(image_path)
+        finally:
+            # Clean up temporary file
+            if image_path:
+                cleanup_temp_file(image_path)
 
         return result
 
-    except HTTPException:
+    except MitraVerifyException:
+        # Re-raise custom exceptions to be handled by middleware
         raise
     except Exception as e:
-        logger.error(f"Error in analyze endpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Convert unexpected exceptions to AnalysisError
+        raise AnalysisError(
+            message=f"Unexpected error during analysis: {str(e)}",
+            content_type="unknown",
+            details={"original_error": str(e)}
+        )
 
 
 @app.get("/health")
