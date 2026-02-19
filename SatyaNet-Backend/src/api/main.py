@@ -1,5 +1,5 @@
 """
-Main FastAPI Application for MitraVerify
+Main FastAPI Application for SatyaNet
 """
 import logging
 import uvicorn
@@ -19,7 +19,7 @@ sys.path.insert(0, src_dir)
 from config.settings import settings
 from config.logging_config import setup_logging
 from core.fusion_engine import fusion_engine
-from core.exceptions import MitraVerifyException, ValidationError, AnalysisError
+from core.exceptions import SatyaNetException, ValidationError, AnalysisError
 from api.endpoints.verification import router as verification_router
 from api.endpoints.health import router as health_router
 from utils.file_utils import save_upload_file_temporarily, cleanup_temp_file
@@ -34,7 +34,7 @@ logger = setup_logging()
 
 # Create FastAPI app
 app = FastAPI(
-    title="MitraVerify API",
+    title="SatyaNet API",
     description="AI-powered misinformation detection system for Indian digital ecosystem",
     version="0.1.0",
     docs_url="/docs",
@@ -74,7 +74,7 @@ app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
 async def root():
     """Root endpoint"""
     return {
-        "message": "Welcome to MitraVerify API",
+        "message": "Welcome to SatyaNet API",
         "version": "0.1.0",
         "docs": "/docs"
     }
@@ -123,7 +123,7 @@ async def analyze_content(
 
         return result
 
-    except MitraVerifyException:
+    except SatyaNetException:
         # Re-raise custom exceptions to be handled by middleware
         raise
     except Exception as e:

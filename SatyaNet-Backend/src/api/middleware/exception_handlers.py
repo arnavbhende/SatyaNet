@@ -1,5 +1,5 @@
 """
-Global exception handler for MitraVerify API
+Global exception handler for SatyaNet API
 Provides consistent error responses and logging
 """
 import logging
@@ -9,20 +9,20 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_500_INTERNAL_SERVER_ERROR
 
-from core.exceptions import MitraVerifyException
+from core.exceptions import SatyaNetException
 
 
 logger = logging.getLogger("error_handler")
 
 
-async def mitraverify_exception_handler(request: Request, exc: MitraVerifyException) -> JSONResponse:
-    """Handle custom MitraVerify exceptions"""
+async def satyanet_exception_handler(request: Request, exc: SatyaNetException) -> JSONResponse:
+    """Handle custom SatyaNet exceptions"""
     
     correlation_id = getattr(request.state, 'correlation_id', 'unknown')
     
     # Log the error with structured data
     logger.error(
-        f"MitraVerify error: {exc.message}",
+        f"SatyaNet error: {exc.message}",
         extra={
             "correlation_id": correlation_id,
             "error_code": exc.error_code,
@@ -30,7 +30,7 @@ async def mitraverify_exception_handler(request: Request, exc: MitraVerifyExcept
             "status_code": exc.http_status_code,
             "path": request.url.path,
             "method": request.method,
-            "event": "application_exception"
+            "event": "satyanet_exception"
         }
     )
     
@@ -157,7 +157,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 def setup_exception_handlers(app):
     """Register all exception handlers with the FastAPI app"""
     
-    app.add_exception_handler(MitraVerifyException, mitraverify_exception_handler)
+    app.add_exception_handler(SatyaNetException, satyanet_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)

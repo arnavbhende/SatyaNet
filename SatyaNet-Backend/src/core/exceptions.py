@@ -1,12 +1,12 @@
 """
-Custom exceptions for MitraVerify application
+Custom exceptions for SatyaNet application
 Provides structured error handling with error codes and details
 """
 from typing import Dict, Any, Optional
 
 
-class MitraVerifyException(Exception):
-    """Base exception for MitraVerify application"""
+class SatyaNetException(Exception):
+    """Base exception for SatyaNet application"""
 
     def __init__(
         self, 
@@ -31,7 +31,7 @@ class MitraVerifyException(Exception):
         }
 
 
-class ModelLoadError(MitraVerifyException):
+class ModelLoadError(SatyaNetException):
     """Raised when AI model fails to load"""
 
     def __init__(self, message: str, model_name: str = None, details: Dict[str, Any] = None):
@@ -43,7 +43,7 @@ class ModelLoadError(MitraVerifyException):
         )
 
 
-class AnalysisError(MitraVerifyException):
+class AnalysisError(SatyaNetException):
     """Raised when content analysis fails"""
 
     def __init__(self, message: str, content_type: str = None, details: Dict[str, Any] = None):
@@ -55,7 +55,7 @@ class AnalysisError(MitraVerifyException):
         )
 
 
-class ValidationError(MitraVerifyException):
+class ValidationError(SatyaNetException):
     """Raised when input validation fails"""
 
     def __init__(self, message: str, field: str = None, value: Any = None, details: Dict[str, Any] = None):
@@ -67,7 +67,7 @@ class ValidationError(MitraVerifyException):
         )
 
 
-class FileProcessingError(MitraVerifyException):
+class FileProcessingError(SatyaNetException):
     """Raised when file processing fails"""
 
     def __init__(self, message: str, filename: str = None, file_type: str = None, details: Dict[str, Any] = None):
@@ -79,7 +79,7 @@ class FileProcessingError(MitraVerifyException):
         )
 
 
-class ResourceExhaustedError(MitraVerifyException):
+class ResourceExhaustedError(SatyaNetException):
     """Raised when system resources are exhausted"""
 
     def __init__(self, message: str, resource_type: str = None, details: Dict[str, Any] = None):
@@ -91,7 +91,7 @@ class ResourceExhaustedError(MitraVerifyException):
         )
 
 
-class ConfigurationError(MitraVerifyException):
+class ConfigurationError(SatyaNetException):
     """Raised when configuration is invalid"""
 
     def __init__(self, message: str, config_key: str = None, details: Dict[str, Any] = None):
@@ -103,7 +103,7 @@ class ConfigurationError(MitraVerifyException):
         )
 
 
-class ExternalServiceError(MitraVerifyException):
+class ExternalServiceError(SatyaNetException):
     """Raised when external service calls fail"""
 
     def __init__(self, message: str, service_name: str = None, status_code: int = None, details: Dict[str, Any] = None):

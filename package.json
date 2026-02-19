@@ -1,16 +1,16 @@
 {
-  "name": "mitraverify-monorepo",
+  "name": "satyanet-monorepo",
   "version": "2.0.0",
-  "description": "MitraVerify 2.0 - AI-powered misinformation detection platform",
+  "description": "SatyaNet - AI-powered misinformation detection platform",
   "private": true,
   "workspaces": [
-    "mitraverify-frontend"
+    "satyanet-frontend"
   ],
   "scripts": {
     "build": "chmod +x build-with-npm.sh && ./build-with-npm.sh",
     "build:windows": ".\\build-with-npm.bat",
-    "dev": "cd mitraverify-frontend && npm run dev",
-    "start": "cd mitraverify-frontend && npm start",
+    "dev": "cd satyanet-frontend && npm run dev",
+    "start": "cd satyanet-frontend && npm start",
     "render-build": "chmod +x build-with-npm.sh && ./build-with-npm.sh"
   },
   "engines": {
@@ -20,8 +20,8 @@
   "packageManager": "npm@9.8.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GauravPatil2515/MitraVerify-2.git"
+    "url": "https://github.com/arnavbhende/SatyaNet.git"
   },
-  "author": "Gaurav Patil",
+  "author": "Arnav Bhende",
   "license": "MIT"
 }
